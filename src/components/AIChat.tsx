@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Sparkles, Send, X, Minimize2, Maximize2, Loader2 } from 'lucide-react';
 import { chatWithEnhancedAI, EnhancedAIResponse } from '@/lib/gemini-enhanced';
 import { detectIntent, executeAction } from '@/lib/ai-actions';
+import { getConversationHistory } from '@/lib/ai-memory-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transaction, Budget } from '@/lib/types';
 
@@ -35,6 +36,39 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load conversation history when chat opens
+  useEffect(() => {
+    if (isOpen && user && messages.length === 0) {
+      loadHistory();
+    }
+  }, [isOpen, user]);
+
+  const loadHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const history = await getConversationHistory(user.uid, 10);
+      
+      // Convert history to message format and reverse to show oldest first
+      const historyMessages = history.reverse().flatMap(conv => [
+        {
+          role: 'user' as const,
+          content: conv.userMessage,
+          timestamp: conv.timestamp instanceof Date ? conv.timestamp : new Date(conv.timestamp)
+        },
+        {
+          role: 'ai' as const,
+          content: conv.aiResponse,
+          timestamp: conv.timestamp instanceof Date ? conv.timestamp : new Date(conv.timestamp)
+        }
+      ]);
+      
+      setMessages(historyMessages);
+    } catch (error) {
+      console.error('Error loading conversation history:', error);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || !user) return;
@@ -193,7 +227,9 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
               </div>
             )}
 
-            {messages.map((msg, idx) => (
+            {messages
+              .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+              .map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
