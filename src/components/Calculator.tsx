@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { useThemeColor, themeColors } from '@/contexts/ThemeColorContext';
 
 interface CalculatorProps {
   onClose?: () => void;
 }
 
 export const Calculator = ({ onClose }: CalculatorProps) => {
+  const { themeColor } = useThemeColor();
   const [display, setDisplay] = useState('0');
   const [previousValue, setPreviousValue] = useState<number | null>(null);
   const [operation, setOperation] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export const Calculator = ({ onClose }: CalculatorProps) => {
 
   return (
     <Card className="w-full max-w-sm bg-white dark:bg-gray-900 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
-      <CardHeader className="flex flex-row items-center justify-between pb-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-lg">
+      <CardHeader className={`flex flex-row items-center justify-between pb-3 bg-gradient-to-r ${themeColors[themeColor].primary} text-white rounded-t-lg`}>
         <CardTitle className="text-lg font-bold">Calculator</CardTitle>
         {onClose && (
           <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-white/20 text-white">
@@ -139,7 +141,7 @@ export const Calculator = ({ onClose }: CalculatorProps) => {
                 variant={['+', '-', '×', '÷', '='].includes(btn) ? 'default' : 'outline'}
                 className={`h-16 text-xl font-bold transition-all active:scale-95 ${
                   ['+', '-', '×', '÷'].includes(btn)
-                    ? 'bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md'
+                    ? `bg-gradient-to-br ${themeColors[themeColor].primary} text-white shadow-md hover:opacity-90`
                     : btn === '='
                     ? 'bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md'
                     : 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border-2'

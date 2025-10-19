@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthForm } from '@/components/AuthForm';
@@ -10,9 +10,15 @@ export default function LoginPage() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Redirect if already logged in
+  // Redirect if already logged in - using useEffect to avoid render error
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  // Show nothing while redirecting
   if (user) {
-    router.push('/dashboard');
     return null;
   }
 
@@ -21,38 +27,21 @@ export default function LoginPage() {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     }}>
       <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          {/* Logo */}
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm mb-4">
-            <svg
-              className="w-12 h-12 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          
+        <div className="text-center mb-8">
           {/* Brand Name */}
-          <h1 className="text-5xl font-bold text-white mb-2" style={{
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            letterSpacing: '-0.02em'
+          <h1 className="text-6xl font-bold text-white mb-3 tracking-tight" style={{
+            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            fontWeight: 700,
+            textShadow: '0 2px 10px rgba(0,0,0,0.2)'
           }}>
-            Steply
+            Stephly
           </h1>
           
           {/* Tagline */}
-          <p className="text-lg text-white/90 font-medium">
+          <p className="text-xl text-white/95 font-semibold mb-1">
             Smart Budget Tracking
           </p>
-          <p className="mt-1 text-sm text-white/70">
+          <p className="text-sm text-white/80">
             Take control of your finances, one step at a time
           </p>
         </div>

@@ -5,30 +5,31 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, TrendingUp, TrendingDown, DollarSign, LogOut } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Settings, BarChart3, LogOut, ChevronDown, CheckSquare } from 'lucide-react';
 import { BottomNav } from '@/components/BottomNav';
 import { Calculator } from '@/components/Calculator';
 import { CurrencyConverter } from '@/components/CurrencyConverter';
 import { WalletCard } from '@/components/WalletCard';
 import { FinancialHealthCard } from '@/components/FinancialHealthCard';
-import { AIAdvisor } from '@/components/AIAdvisor';
-import { AIChat } from '@/components/AIChat';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { TransactionsList } from '@/components/TransactionsList';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { getTransactions, getBudgets } from '@/lib/firebase-service';
 import { Transaction, Budget } from '@/lib/types';
 import { formatCurrency } from '@/lib/currency';
+import { useThemeColor, themeColors } from '@/contexts/ThemeColorContext';
+import { WelcomeModal } from '@/components/WelcomeModal';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const { themeColor } = useThemeColor();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<(Budget & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showConverter, setShowConverter] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [stats, setStats] = useState({
     totalBalance: 0,
     totalIncome: 0,
@@ -40,6 +41,29 @@ export default function Dashboard() {
       fetchData();
     }
   }, [user, refreshTrigger]);
+
+  // Refresh data when page becomes visible (e.g., navigating back from chat)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        fetchData();
+      }
+    };
+
+    const handleFocus = () => {
+      if (user) {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -95,30 +119,91 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+      {/* Welcome Modal for New Users */}
+      <WelcomeModal userName={user?.displayName || user?.email?.split('@')[0]} />
+
+      {/* TODO & Settings - Top Right Corner */}
+      <div className="fixed top-4 right-4 z-50 flex gap-2">
+        {/* TODO Button */}
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={() => router.push('/todos')}
+          title="Planned Expenses"
+          className={`bg-white dark:bg-gray-800 shadow-lg ${themeColors[themeColor].hover}`}
+        >
+          <CheckSquare size={20} className={themeColors[themeColor].text} />
+        </Button>
+        
+        {/* Settings Button */}
+        <div className="relative">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+            title="Settings"
+            className="bg-white dark:bg-gray-800 shadow-lg"
+          >
+            <Settings size={20} />
+          </Button>
+                
+                {showSettingsMenu && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowSettingsMenu(false)}
+                    />
+                    
+                    {/* Dropdown Menu */}
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                      <button
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          router.push('/analytics');
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-sm"
+                      >
+                        <BarChart3 size={18} />
+                        <span>Analytics</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          router.push('/settings');
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-sm"
+                      >
+                        <Settings size={18} />
+                        <span>Settings</span>
+                      </button>
+                      
+                      <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                      
+                      <button
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          handleLogout();
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-sm text-red-600 dark:text-red-400"
+                      >
+                        <LogOut size={18} />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto">
         <div className="p-4 sm:p-6 lg:p-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Welcome back, {user.displayName || user.email?.split('@')[0]}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button className="flex items-center gap-2">
-                <Plus size={20} />
-                <span className="hidden sm:inline">Add Transaction</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <LogOut size={20} />
-              </Button>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Welcome back, {user.displayName || user.email?.split('@')[0]}</p>
           </div>
 
           {/* Wallet Card */}
@@ -131,110 +216,39 @@ export default function Dashboard() {
             />
           </div>
 
-        {/* AI Advisor & Financial Health */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <AIAdvisor
-            balance={stats.totalBalance}
-            income={0}
-            expenses={stats.totalExpenses}
-            transactions={transactions}
-            budgets={budgets}
-          />
-          <FinancialHealthCard
-            balance={stats.totalBalance}
-            income={stats.totalIncome}
-            expenses={stats.totalExpenses}
-            budgets={budgets}
-            transactions={transactions}
-          />
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
-          <Card className="touch-manipulation">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">Monthly Overview</CardTitle>
-              <CardDescription>Your income vs expenses this month</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-48 sm:h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                Chart will be displayed here
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="touch-manipulation">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">Budget Progress</CardTitle>
-              <CardDescription>How you're tracking against your budgets</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 sm:space-y-4">
-                {loading ? (
-                  <div className="text-center text-gray-500 dark:text-gray-400 py-4">Loading budgets...</div>
-                ) : budgets.length === 0 ? (
-                  <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                    No budgets set for this month
-                  </div>
-                ) : (
-                  budgets.slice(0, 3).map((budget) => {
-                    const percentage = (budget.spent / budget.limit) * 100;
-                    const color = percentage >= 90 ? 'bg-red-500' : percentage >= 70 ? 'bg-yellow-500' : 'bg-green-500';
-                    
-                    return (
-                      <div key={budget.id}>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="capitalize">{budget.category}</span>
-                          <span>${budget.spent.toFixed(2)} / ${budget.limit.toFixed(2)}</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div className={`${color} h-2 rounded-full`} style={{ width: `${Math.min(percentage, 100)}%` }}></div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div className="text-center pt-2">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    Manage Budgets
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Transactions List */}
         <TransactionsList refreshTrigger={refreshTrigger} />
 
-        {/* Quick Actions */}
-        <Card className="mt-4 sm:mt-6 touch-manipulation">
+        {/* Quick Analytics */}
+        <Card className="mt-8">
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Quick Actions</CardTitle>
-            <CardDescription>Manage your finances efficiently</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+              <TrendingUp className={themeColors[themeColor].text} size={20} />
+              Quick Analytics
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm">
-                <Plus size={16} className="sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Add Income</span>
-                <span className="sm:hidden">Income</span>
-              </Button>
-              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm">
-                <TrendingDown size={16} className="sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Add Expense</span>
-                <span className="sm:hidden">Expense</span>
-              </Button>
-              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm">
-                <DollarSign size={16} className="sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Set Budget</span>
-                <span className="sm:hidden">Budget</span>
-              </Button>
-              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 text-xs sm:text-sm">
-                <TrendingUp size={16} className="sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">View Reports</span>
-                <span className="sm:hidden">Reports</span>
-              </Button>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-gray-200 dark:border-purple-800">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Transactions</p>
+                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{transactions.length}</p>
+              </div>
+              <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-gray-200 dark:border-blue-800">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Budgets</p>
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{budgets.length}</p>
+              </div>
+              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-gray-200 dark:border-green-800">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Savings Rate</p>
+                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  {stats.totalIncome > 0 ? Math.round(((stats.totalIncome - stats.totalExpenses) / stats.totalIncome) * 100) : 0}%
+                </p>
+              </div>
+              <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-gray-200 dark:border-orange-800">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">This Month</p>
+                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                  {new Date().toLocaleDateString('en-US', { month: 'short' })}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -260,16 +274,6 @@ export default function Dashboard() {
           <CurrencyConverter onClose={() => setShowConverter(false)} />
         </div>
       )}
-
-      {/* AI Chat Assistant */}
-      <AIChat
-        balance={stats.totalBalance}
-        income={stats.totalIncome}
-        expenses={stats.totalExpenses}
-        transactions={transactions}
-        budgets={budgets}
-        currentPage="Dashboard"
-      />
 
       <FloatingAddButton />
     </div>

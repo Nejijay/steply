@@ -1,11 +1,11 @@
 // Enhanced Gemini AI with Full Context Awareness and Firebase Integration
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { Transaction, Budget } from './types';
 import { formatCurrency } from './currency';
 import { saveConversation, buildAIContext, saveInsight } from './ai-memory-service';
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '' });
 
 export interface AIResponse {
   message: string;
@@ -30,8 +30,6 @@ export const chatWithAI = async (
   }
 ): Promise<AIResponse> => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     // Get conversation history from Firebase
     const conversationHistory = await buildAIContext(context.uid);
 
@@ -47,7 +45,7 @@ export const chatWithAI = async (
       .map(b => `${b.category}: ${formatCurrency(b.spent)}/${formatCurrency(b.limit)} (${((b.spent/b.limit)*100).toFixed(0)}%)`)
       .join('\n');
 
-    const prompt = `You are Steply AI, a personal financial assistant for a user in Ghana. You have access to their complete financial data and conversation history stored in Firebase. Be helpful, conversational, and provide actionable advice.
+    const prompt = `You are Stephly AI, a personal financial assistant for a user in Ghana. You have access to their complete financial data and conversation history stored in Firebase. Be helpful, conversational, and provide actionable advice.
 
 **Current Context:**
 - Page: ${context.page}
@@ -88,9 +86,11 @@ Respond in JSON format:
   "actionRequired": false
 }`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    const text = response.text || "";
 
     // Parse JSON response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -164,8 +164,6 @@ export const getProactiveSuggestions = async (
   budgets: Budget[]
 ): Promise<string[]> => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const conversationHistory = await buildAIContext(uid);
     const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
 
@@ -184,9 +182,11 @@ ${conversationHistory}
 Return only a JSON array of 3 short, actionable suggestions:
 ["suggestion 1", "suggestion 2", "suggestion 3"]`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    const text = response.text || "";
 
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {

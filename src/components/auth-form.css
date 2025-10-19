@@ -46,6 +46,11 @@
   width: 85%;
   height: 100%;
   background: transparent;
+  color: #151717;
+}
+
+.input::placeholder {
+  color: #9ca3af;
 }
 
 .input:focus {
@@ -96,20 +101,23 @@
 
 .button-submit {
   margin: 20px 0 10px 0;
-  background-color: #151717;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   color: white;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   border-radius: 10px;
   height: 50px;
   width: 100%;
   cursor: pointer;
   transition: 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .button-submit:hover {
-  background-color: #252727;
+  background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
 }
 
 .button-submit:disabled {
@@ -172,30 +180,4 @@
   cursor: not-allowed;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .form {
-    background-color: #1f2937;
-  }
-  
-  .flex-column > label,
-  .flex-row > div > label,
-  .p {
-    color: #f3f4f6;
-  }
-  
-  .inputForm {
-    border-color: #374151;
-    background-color: #111827;
-  }
-  
-  .input {
-    color: #f3f4f6;
-  }
-  
-  .btn {
-    background-color: #111827;
-    border-color: #374151;
-    color: #f3f4f6;
-  }
-}
+/* Force light mode - no dark mode support for login/signup */

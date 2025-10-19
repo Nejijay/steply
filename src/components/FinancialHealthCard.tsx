@@ -51,8 +51,8 @@ export const FinancialHealthCard = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="text-purple-600" />
+        <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+          <TrendingUp className="text-purple-600 dark:text-purple-400" />
           Financial Health
         </CardTitle>
       </CardHeader>
@@ -62,7 +62,7 @@ export const FinancialHealthCard = ({
           <div className="flex items-center justify-center gap-3 mb-2">
             {getStatusIcon()}
             <div>
-              <div className="text-4xl font-bold">{health.score}</div>
+              <div className="text-4xl font-bold text-gray-900 dark:text-white">{health.score}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">out of 100</div>
             </div>
           </div>
@@ -93,11 +93,11 @@ export const FinancialHealthCard = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Savings Rate</p>
-            <p className="text-xl font-bold">{health.savingsRate.toFixed(1)}%</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{health.savingsRate.toFixed(1)}%</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Expense Ratio</p>
-            <p className="text-xl font-bold">{health.expenseRatio.toFixed(1)}%</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{health.expenseRatio.toFixed(1)}%</p>
           </div>
         </div>
 

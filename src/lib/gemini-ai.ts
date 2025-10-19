@@ -24,7 +24,7 @@ export const getFinancialAdvice = async (
   budgets: Budget[]
 ): Promise<AIFinancialAdvice> => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     // Prepare financial context
     const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
@@ -128,7 +128,7 @@ export const getBudgetSuggestions = async (
   transactions: Transaction[]
 ): Promise<{ category: string; suggestedAmount: number; reason: string }[]> => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const existingBudgets = currentBudgets.map(b => `${b.category}: ${formatCurrency(b.limit)}`).join(', ');
     
@@ -187,7 +187,7 @@ export const analyzeTransaction = async (
   monthlyIncome: number
 ): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `Analyze this transaction and provide a brief insight (1-2 sentences):
 

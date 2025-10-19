@@ -64,16 +64,16 @@ export const AIAdvisor = ({ balance, income, expenses, transactions, budgets }: 
 
   return (
     <Card className="border-2 border-purple-200 dark:border-purple-800">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-            <Sparkles className="text-white" size={20} />
+      <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-t-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles size={20} className="text-white" />
+            <CardTitle className="text-lg font-bold text-white">AI Financial Advisor</CardTitle>
           </div>
-          AI Financial Advisor
           <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full ml-auto">
             Powered by Gemini
           </span>
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {!advice && !loading && (

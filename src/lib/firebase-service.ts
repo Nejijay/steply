@@ -8,22 +8,12 @@ import {
   User as FirebaseUser,
   updateProfile
 } from 'firebase/auth';
-import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  writeBatch
+import { 
+  collection, addDoc, getDocs, getDoc, query, where, orderBy, limit, 
+  updateDoc, doc, setDoc, serverTimestamp, deleteDoc 
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { UserProfile, Transaction, Budget } from './types';
+import { UserProfile, Transaction, Budget, Todo } from './types';
 
 // Authentication functions
 export const signUp = async (email: string, password: string, name: string) => {
@@ -200,4 +190,64 @@ export const getBudgets = async (uid: string, month: number, year: number) => {
   });
 
   return budgets;
+};
+
+// TODO functions
+export const addTodo = async (todo: Omit<Todo, 'id' | 'createdAt'>) => {
+  const docRef = await addDoc(collection(db, 'todos'), {
+    ...todo,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+};
+
+export const getTodos = async (uid: string) => {
+  const q = query(
+    collection(db, 'todos'),
+    where('uid', '==', uid),
+    orderBy('createdAt', 'desc')
+  );
+
+  const querySnapshot = await getDocs(q);
+  const todos: (Todo & { id: string })[] = [];
+
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    todos.push({ 
+      id: doc.id, 
+      ...data,
+      createdAt: data.createdAt?.toDate()
+    } as Todo & { id: string });
+  });
+
+  return todos;
+};
+
+export const updateTodo = async (todoId: string, updates: Partial<Todo>) => {
+  await updateDoc(doc(db, 'todos', todoId), updates);
+};
+
+export const deleteTodo = async (todoId: string) => {
+  await deleteDoc(doc(db, 'todos', todoId));
+};
+
+// Complete TODO and convert to transaction
+export const completeTodo = async (todo: Todo & { id: string }) => {
+  // Add as transaction
+  const transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'> = {
+    uid: todo.uid,
+    type: 'expense',
+    title: todo.title,
+    amount: todo.amount,
+    category: todo.category,
+    date: new Date(),
+    note: todo.note || 'Completed from TODO',
+  };
+
+  await addTransaction(transaction);
+
+  // Mark TODO as completed
+  await updateTodo(todo.id, { completed: true });
+
+  return true;
 };

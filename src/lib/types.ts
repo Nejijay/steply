@@ -43,3 +43,15 @@ export interface Category {
   icon: string;
   color: string;
 }
+
+export interface Todo {
+  id?: string;
+  uid: string;
+  title: string;
+  amount: number;
+  category: string;
+  dueDate?: string;
+  note?: string;
+  completed: boolean;
+  createdAt?: Date;
+}

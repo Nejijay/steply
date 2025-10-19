@@ -79,7 +79,7 @@ export const Sidebar = ({ onCalculatorOpen, onConverterOpen }: SidebarProps) => 
                 <span className="text-white font-bold text-xl">₵</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Steply</h1>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Stephly</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Budget Tracker</p>
               </div>
             </div>

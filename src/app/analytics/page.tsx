@@ -1,53 +1,111 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { BottomNav } from '@/components/BottomNav';
+import { Calculator } from '@/components/Calculator';
+import { CurrencyConverter } from '@/components/CurrencyConverter';
+import { FinancialHealthCard } from '@/components/FinancialHealthCard';
+import { getTransactions, getBudgets } from '@/lib/firebase-service';
+import { Transaction, Budget } from '@/lib/types';
+import { formatCurrency } from '@/lib/currency';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-const mockSpendingData = [
-  { category: 'Food', amount: 450, percentage: 25.7 },
-  { category: 'Transport', amount: 320, percentage: 18.3 },
-  { category: 'Entertainment', amount: 150, percentage: 8.6 },
-  { category: 'Shopping', amount: 280, percentage: 16.0 },
-  { category: 'Bills', amount: 400, percentage: 22.9 },
-  { category: 'Healthcare', amount: 150, percentage: 8.6 },
-];
-
-const mockMonthlyData = [
-  { month: 'Jan', income: 4200, expenses: 3800 },
-  { month: 'Feb', income: 4200, expenses: 3200 },
-  { month: 'Mar', income: 4200, expenses: 4100 },
-  { month: 'Apr', income: 4200, expenses: 3500 },
-  { month: 'May', income: 4200, expenses: 3900 },
-  { month: 'Jun', income: 4200, expenses: 3750 },
-];
-
 export default function AnalyticsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('6months');
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [showConverter, setShowConverter] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<(Budget & { id: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    savingsRate: 0,
+  });
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const [transactionsData, budgetsData] = await Promise.all([
+        getTransactions(user.uid),
+        getBudgets(user.uid, new Date().getMonth() + 1, new Date().getFullYear()),
+      ]);
+
+      setTransactions(transactionsData);
+      setBudgets(budgetsData);
+
+      const income = transactionsData.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expenses = transactionsData.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      
+      setStats({
+        totalIncome: income,
+        totalExpenses: expenses,
+        savingsRate: income > 0 ? ((income - expenses) / income) * 100 : 0,
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Calculate spending by category from real data
+  const spendingData = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, t) => {
+      const existing = acc.find(item => item.category === t.category);
+      if (existing) {
+        existing.amount += t.amount;
+      } else {
+        acc.push({ category: t.category, amount: t.amount, percentage: 0 });
+      }
+      return acc;
+    }, [] as { category: string; amount: number; percentage: number }[])
+    .map(item => ({
+      ...item,
+      percentage: stats.totalExpenses > 0 ? (item.amount / stats.totalExpenses) * 100 : 0,
+    }));
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-2 sm:p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <Button variant="ghost" className="mb-4 p-2">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 mb-6 shadow-sm">
+          <Button 
+            variant="ghost" 
+            className="mb-3 -ml-2"
+            onClick={() => router.push('/dashboard')}
+          >
             <ArrowLeft size={20} className="mr-2" />
             Back to Dashboard
           </Button>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Analytics & Reports</h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Insights into your spending patterns</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mt-1">Insights into your spending patterns</p>
         </div>
+
+        <div className="px-4 sm:px-6">
 
         {/* Period Selector */}
         <div className="mb-4 sm:mb-6">
@@ -79,43 +137,60 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
+        {/* Financial Health Card */}
+        <div className="mb-6">
+          <FinancialHealthCard
+            balance={stats.totalIncome - stats.totalExpenses}
+            income={stats.totalIncome}
+            expenses={stats.totalExpenses}
+            budgets={budgets}
+            transactions={transactions}
+          />
+        </div>
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
           <Card className="touch-manipulation">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Monthly Income</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Total Income</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{formatCurrency(4200)}</div>
-              <p className="text-xs text-muted-foreground">
-                Consistent across periods
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                {formatCurrency(stats.totalIncome)}
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                All time earnings
               </p>
             </CardContent>
           </Card>
 
           <Card className="touch-manipulation">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Monthly Expenses</CardTitle>
-              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Total Expenses</CardTitle>
+              <TrendingDown className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{formatCurrency(3708)}</div>
-              <p className="text-xs text-muted-foreground">
-                -5.2% from last period
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                {formatCurrency(stats.totalExpenses)}
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                All time spending
               </p>
             </CardContent>
           </Card>
 
           <Card className="touch-manipulation sm:col-span-2 lg:col-span-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Savings Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Savings Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">11.7%</div>
-              <p className="text-xs text-muted-foreground">
-                +2.1% improvement
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                {stats.savingsRate.toFixed(1)}%
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {stats.savingsRate > 20 ? 'Excellent savings!' : 'Keep saving!'}
               </p>
             </CardContent>
           </Card>
@@ -126,31 +201,37 @@ export default function AnalyticsPage() {
           {/* Spending Breakdown */}
           <Card className="touch-manipulation">
             <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">Spending by Category</CardTitle>
-              <CardDescription>Where your money goes this period</CardDescription>
+              <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">Spending by Category</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Where your money goes</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64 sm:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={mockSpendingData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ category, percentage }) => `${category} (${percentage}%)`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="amount"
-                    >
-                      {mockSpendingData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {spendingData.length > 0 ? (
+                <div className="h-64 sm:h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={spendingData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ category, percentage }) => `${category} (${percentage.toFixed(1)}%)`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="amount"
+                      >
+                        {spendingData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                  No spending data yet. Start tracking your expenses!
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -237,7 +318,29 @@ export default function AnalyticsPage() {
             </div>
           </CardContent>
         </Card>
+        
+        </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNav 
+        onCalculatorOpen={() => setShowCalculator(true)}
+        onConverterOpen={() => setShowConverter(true)}
+      />
+
+      {/* Calculator Modal */}
+      {showCalculator && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Calculator onClose={() => setShowCalculator(false)} />
+        </div>
+      )}
+
+      {/* Currency Converter Modal */}
+      {showConverter && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <CurrencyConverter onClose={() => setShowConverter(false)} />
+        </div>
+      )}
     </div>
   );
 }

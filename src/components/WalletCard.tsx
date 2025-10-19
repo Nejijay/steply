@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Eye, EyeOff, TrendingUp, TrendingDown } from 'lucide-react';
 import { useState } from 'react';
 import { formatCurrency } from '@/lib/currency';
+import { useThemeColor, themeColors } from '@/contexts/ThemeColorContext';
 
 interface WalletCardProps {
   balance: number;
@@ -14,11 +15,12 @@ interface WalletCardProps {
 
 export const WalletCard = ({ balance, income, expenses, loading }: WalletCardProps) => {
   const [showBalance, setShowBalance] = useState(true);
+  const { themeColor } = useThemeColor();
 
   return (
     <Card className="relative overflow-hidden border-0 shadow-xl">
-      {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800" />
+      {/* Gradient Background - Uses Theme Color */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${themeColors[themeColor].primary}`} />
       
       {/* Decorative Circles */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />

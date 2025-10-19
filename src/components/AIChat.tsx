@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Send, X, Minimize2, Maximize2, Loader2 } from 'lucide-react';
-import { chatWithAI, AIResponse } from '@/lib/gemini-context';
+import { chatWithEnhancedAI, EnhancedAIResponse } from '@/lib/gemini-enhanced';
+import { detectIntent, executeAction } from '@/lib/ai-actions';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transaction, Budget } from '@/lib/types';
 
@@ -46,7 +47,29 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
     setLoading(true);
 
     try {
-      const response = await chatWithAI(userMessage, {
+      // First, detect if user wants to perform an action
+      const intent = await detectIntent(userMessage, {
+        uid: user.uid,
+        balance,
+        income,
+      });
+
+      // If action detected, execute it
+      if (intent.type !== 'none') {
+        const actionResult = await executeAction(intent, user.uid);
+        
+        setMessages(prev => [...prev, { 
+          role: 'ai', 
+          content: actionResult.message,
+          timestamp: new Date() 
+        }]);
+        
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, continue with normal AI chat
+      const response = await chatWithEnhancedAI(userMessage, {
         uid: user.uid,
         page: currentPage,
         balance,
@@ -65,10 +88,20 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
 
       // Add suggestions if any
       if (response.suggestions && response.suggestions.length > 0) {
-        const suggestionsText = '💡 Suggestions:\n' + response.suggestions.map(s => `• ${s}`).join('\n');
+        const suggestionsText = '💡 Suggestions:\n' + response.suggestions.map((s: string) => `• ${s}`).join('\n');
         setMessages(prev => [...prev, { 
           role: 'ai', 
           content: suggestionsText,
+          timestamp: new Date() 
+        }]);
+      }
+
+      // Add related topics if any
+      if (response.relatedTopics && response.relatedTopics.length > 0) {
+        const topicsText = '🔗 Related Topics:\n' + response.relatedTopics.map((t: string) => `• ${t}`).join('\n');
+        setMessages(prev => [...prev, { 
+          role: 'ai', 
+          content: topicsText,
           timestamp: new Date() 
         }]);
       }
@@ -108,7 +141,7 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
       <CardHeader className="flex flex-row items-center justify-between pb-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-t-lg">
         <div className="flex items-center gap-2">
           <Sparkles size={20} />
-          <CardTitle className="text-lg font-bold">Steply AI</CardTitle>
+          <CardTitle className="text-lg font-bold">Stephly AI</CardTitle>
         </div>
         <div className="flex items-center gap-1">
           <Button 
@@ -135,9 +168,16 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
             {messages.length === 0 && (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                <Sparkles className="mx-auto mb-2" size={32} />
-                <p className="text-sm">Ask me anything about your finances!</p>
-                <p className="text-xs mt-2">I remember all our conversations 💭</p>
+                <Sparkles className="mx-auto mb-4 text-purple-500" size={40} />
+                <p className="text-base font-semibold mb-2">Ask me anything!</p>
+                <div className="text-xs space-y-1">
+                  <p>💰 Personal finance & budgeting</p>
+                  <p>🌍 General knowledge & facts</p>
+                  <p>🧮 Math & problem solving</p>
+                  <p>✍️ Writing & creative tasks</p>
+                  <p>📚 Learning & explanations</p>
+                  <p className="mt-3 text-purple-600 dark:text-purple-400">I remember everything! 💭</p>
+                </div>
               </div>
             )}
 

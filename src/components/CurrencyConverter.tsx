@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, ArrowDownUp, RefreshCw } from 'lucide-react';
 import { fetchExchangeRates, convertCurrency, ExchangeRates } from '@/lib/currency';
+import { useThemeColor, themeColors } from '@/contexts/ThemeColorContext';
 
 interface CurrencyConverterProps {
   onClose?: () => void;
 }
 
 export const CurrencyConverter = ({ onClose }: CurrencyConverterProps) => {
+  const { themeColor } = useThemeColor();
   const [amount, setAmount] = useState('1');
   const [fromCurrency, setFromCurrency] = useState('GHS');
   const [toCurrency, setToCurrency] = useState('USD');
@@ -61,15 +63,15 @@ export const CurrencyConverter = ({ onClose }: CurrencyConverterProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-lg">Currency Converter</CardTitle>
+    <Card className="w-full max-w-md mx-auto bg-white dark:bg-gray-800 shadow-xl">
+      <CardHeader className={`flex flex-row items-center justify-between pb-3 bg-gradient-to-r ${themeColors[themeColor].primary} rounded-t-lg`}>
+        <CardTitle className="text-lg font-medium text-white">Currency Converter</CardTitle>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={loadRates} disabled={loading}>
+          <Button variant="ghost" size="icon" onClick={loadRates} disabled={loading} className="text-white hover:bg-white/20">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </Button>
           {onClose && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
               <X size={18} />
             </Button>
           )}
@@ -133,14 +135,14 @@ export const CurrencyConverter = ({ onClose }: CurrencyConverterProps) => {
         </div>
 
         {/* Exchange Rate Info */}
-        <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 space-y-1">
-          <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
+        <div className={`${themeColors[themeColor].light} rounded-lg p-3 space-y-1 border border-gray-200 dark:border-gray-700`}>
+          <div className="text-sm font-medium text-gray-900 dark:text-white">
             Exchange Rate
           </div>
-          <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
+          <div className={`text-lg font-bold ${themeColors[themeColor].text}`}>
             1 {fromCurrency} = {getRate().toFixed(4)} {toCurrency}
           </div>
-          <div className="text-xs text-blue-700 dark:text-blue-300">
+          <div className="text-xs text-gray-600 dark:text-gray-400">
             Last updated: {lastUpdated.toLocaleTimeString()}
           </div>
         </div>

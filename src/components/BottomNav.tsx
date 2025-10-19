@@ -3,11 +3,12 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
-  TrendingUp, 
   Wallet, 
   Calculator as CalcIcon,
   ArrowLeftRight,
+  Sparkles,
 } from 'lucide-react';
+import { useThemeColor, themeColors } from '@/contexts/ThemeColorContext';
 
 interface BottomNavProps {
   onCalculatorOpen: () => void;
@@ -17,6 +18,7 @@ interface BottomNavProps {
 export const BottomNav = ({ onCalculatorOpen, onConverterOpen }: BottomNavProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { themeColor } = useThemeColor();
 
   const navItems = [
     { 
@@ -26,10 +28,10 @@ export const BottomNav = ({ onCalculatorOpen, onConverterOpen }: BottomNavProps)
       action: () => router.push('/dashboard')
     },
     { 
-      icon: TrendingUp, 
-      label: 'Analytics', 
-      path: '/analytics',
-      action: () => router.push('/analytics')
+      icon: Sparkles, 
+      label: 'Stephly', 
+      path: '/chat',
+      action: () => router.push('/chat')
     },
     { 
       icon: CalcIcon, 
@@ -66,7 +68,7 @@ export const BottomNav = ({ onCalculatorOpen, onConverterOpen }: BottomNavProps)
                 flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg
                 transition-all duration-200 min-w-[60px]
                 ${isActive 
-                  ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950' 
+                  ? `${themeColors[themeColor].text} ${themeColors[themeColor].light}` 
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }
               `}

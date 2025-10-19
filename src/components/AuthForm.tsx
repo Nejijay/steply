@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn, signUp, signInWithGoogle } from '@/lib/firebase-service';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import { Mail, Lock, User } from 'lucide-react';
 import './auth-form.css';
 
@@ -14,8 +15,19 @@ export const AuthForm = ({ onToggleMode, isSignUp }: AuthFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  // Load saved email if remember me was checked
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,9 +39,37 @@ export const AuthForm = ({ onToggleMode, isSignUp }: AuthFormProps) => {
         await signUp(email, password, name);
       } else {
         await signIn(email, password);
+        
+        // Save email if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email first');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const auth = getAuth();
+      await sendPasswordResetEmail(auth, email);
+      setResetEmailSent(true);
+      setTimeout(() => setResetEmailSent(false), 5000);
+    } catch (error: any) {
+      setError(error.message || 'Failed to send reset email');
     } finally {
       setLoading(false);
     }
@@ -102,11 +142,24 @@ export const AuthForm = ({ onToggleMode, isSignUp }: AuthFormProps) => {
       {!isSignUp && (
         <div className="flex-row">
           <div>
-            <input type="checkbox" id="remember" />
+            <input 
+              type="checkbox" 
+              id="remember" 
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
             <label htmlFor="remember">Remember me</label>
           </div>
-          <span className="span">Forgot password?</span>
+          <span className="span" onClick={handleForgotPassword} style={{ cursor: 'pointer' }}>
+            Forgot password?
+          </span>
         </div>
+      )}
+
+      {resetEmailSent && (
+        <p style={{ color: '#10b981', fontSize: '14px', margin: '5px 0' }}>
+          ✅ Password reset email sent! Check your inbox.
+        </p>
       )}
 
       {error && (
