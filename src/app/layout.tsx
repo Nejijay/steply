@@ -22,8 +22,8 @@ export const metadata: Metadata = {
     title: 'Stephly',
   },
   icons: {
-    icon: '/icon.svg',
-    apple: '/icon.svg',
+    icon: '/logo/stephly.png',
+    apple: '/logo/stephly.png',
   },
 }
 

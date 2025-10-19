@@ -66,10 +66,17 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
             // Also save to localStorage for faster loading
             localStorage.setItem('theme', savedTheme);
           } else {
-            // Default to light mode for new users
+            // Default to light mode for new users and save to Firebase
             setTheme('light');
             localStorage.setItem('theme', 'light');
+            // Save light theme to Firebase for new users
+            await setDoc(doc(db, 'users', user.uid), { theme: 'light' }, { merge: true });
           }
+        } else {
+          // New user - set and save light theme
+          setTheme('light');
+          localStorage.setItem('theme', 'light');
+          await setDoc(doc(db, 'users', user.uid), { theme: 'light' }, { merge: true });
         }
       } catch (error) {
         console.error('Error loading theme:', error);
