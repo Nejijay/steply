@@ -105,11 +105,23 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
           timestamp: new Date() 
         }]);
       }
-    } catch (error) {
-      console.error('Chat error:', error);
+    } catch (error: any) {
+      console.error('Chat error details:', error);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      
+      let errorMessage = "Sorry, I'm having trouble responding right now. Please try again.";
+      
+      // More specific error messages
+      if (error?.message?.includes('API key')) {
+        errorMessage = "⚠️ API key not configured. Please check your environment variables.";
+      } else if (error?.message?.includes('fetch')) {
+        errorMessage = "⚠️ Network error. Please check your connection.";
+      }
+      
       setMessages(prev => [...prev, { 
         role: 'ai', 
-        content: "Sorry, I'm having trouble responding right now. Please try again.",
+        content: errorMessage,
         timestamp: new Date() 
       }]);
     } finally {

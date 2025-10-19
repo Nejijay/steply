@@ -34,9 +34,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
       if (saved) {
         return saved;
       }
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return prefersDark ? 'dark' : 'light';
+      // Default to light mode for new users
+      return 'light';
     }
     return 'light';
   });
@@ -50,9 +49,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
       if (saved) {
         setTheme(saved);
       } else {
-        // If no user and no saved theme, check system preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setTheme(prefersDark ? 'dark' : 'light');
+        // Default to light mode
+        setTheme('light');
       }
       return;
     }
@@ -68,11 +66,9 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
             // Also save to localStorage for faster loading
             localStorage.setItem('theme', savedTheme);
           } else {
-            // Default to system preference for new users
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const defaultTheme = prefersDark ? 'dark' : 'light';
-            setTheme(defaultTheme);
-            localStorage.setItem('theme', defaultTheme);
+            // Default to light mode for new users
+            setTheme('light');
+            localStorage.setItem('theme', 'light');
           }
         }
       } catch (error) {
