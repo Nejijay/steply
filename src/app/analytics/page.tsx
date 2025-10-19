@@ -83,6 +83,35 @@ export default function AnalyticsPage() {
       percentage: stats.totalExpenses > 0 ? (item.amount / stats.totalExpenses) * 100 : 0,
     }));
 
+  // Calculate monthly trends from real data
+  const monthlyData = transactions.reduce((acc, transaction) => {
+    const date = new Date(transaction.date);
+    const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    
+    const existing = acc.find(item => item.month === monthYear);
+    if (existing) {
+      if (transaction.type === 'income') {
+        existing.income += transaction.amount;
+      } else {
+        existing.expenses += transaction.amount;
+      }
+    } else {
+      acc.push({
+        month: monthYear,
+        income: transaction.type === 'income' ? transaction.amount : 0,
+        expenses: transaction.type === 'expense' ? transaction.amount : 0,
+      });
+    }
+    return acc;
+  }, [] as { month: string; income: number; expenses: number }[])
+  .sort((a, b) => {
+    // Sort by date
+    const dateA = new Date(a.month);
+    const dateB = new Date(b.month);
+    return dateA.getTime() - dateB.getTime();
+  })
+  .slice(-6); // Get last 6 months
+
   if (!user) {
     router.push('/login');
     return null;
@@ -242,19 +271,25 @@ export default function AnalyticsPage() {
               <CardDescription>Income vs expenses over time</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64 sm:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={mockMonthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `$${value}`} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Legend />
-                    <Bar dataKey="income" fill="#22c55e" name="Income" />
-                    <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {monthlyData.length > 0 ? (
+                <div className="h-64 sm:h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis tickFormatter={(value) => `$${value}`} />
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      <Legend />
+                      <Bar dataKey="income" fill="#22c55e" name="Income" />
+                      <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                  No transaction data yet. Start tracking to see monthly trends!
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -266,26 +301,32 @@ export default function AnalyticsPage() {
             <CardDescription>Detailed spending by category</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 sm:space-y-4">
-              {mockSpendingData.map((item, index) => (
-                <div key={item.category} className="flex items-center justify-between p-3 sm:p-4 border rounded-lg bg-white dark:bg-gray-800">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    ></div>
-                    <div>
-                      <div className="font-medium text-sm sm:text-base">{item.category}</div>
-                      <div className="text-xs sm:text-sm text-gray-500">{item.percentage}% of total spending</div>
+            {spendingData.length > 0 ? (
+              <div className="space-y-3 sm:space-y-4">
+                {spendingData.map((item: { category: string; amount: number; percentage: number }, index: number) => (
+                  <div key={item.category} className="flex items-center justify-between p-3 sm:p-4 border rounded-lg bg-white dark:bg-gray-800">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      ></div>
+                      <div>
+                        <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">{item.category}</div>
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{item.percentage.toFixed(1)}% of total spending</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">{formatCurrency(item.amount)}</div>
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">This period</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium text-sm sm:text-base">{formatCurrency(item.amount)}</div>
-                    <div className="text-xs sm:text-sm text-gray-500">This period</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                No spending data to display. Add some expenses to see your category breakdown!
+              </div>
+            )}
           </CardContent>
         </Card>
 
