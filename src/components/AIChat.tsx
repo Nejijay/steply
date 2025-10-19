@@ -39,10 +39,11 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
 
   // Load conversation history when chat opens
   useEffect(() => {
-    if (isOpen && user && messages.length === 0) {
+    const shouldLoad = isOpen && user && messages.length === 0;
+    if (shouldLoad) {
       loadHistory();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, messages.length]);
 
   const loadHistory = async () => {
     if (!user) return;
@@ -51,18 +52,23 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
       const history = await getConversationHistory(user.uid, 10);
       
       // Convert history to message format and reverse to show oldest first
-      const historyMessages = history.reverse().flatMap(conv => [
-        {
-          role: 'user' as const,
-          content: conv.userMessage,
-          timestamp: conv.timestamp instanceof Date ? conv.timestamp : new Date(conv.timestamp)
-        },
-        {
-          role: 'ai' as const,
-          content: conv.aiResponse,
-          timestamp: conv.timestamp instanceof Date ? conv.timestamp : new Date(conv.timestamp)
-        }
-      ]);
+      const historyMessages = history.reverse().flatMap(conv => {
+        const userTimestamp = conv.timestamp instanceof Date ? conv.timestamp : new Date(conv.timestamp);
+        const aiTimestamp = new Date(userTimestamp.getTime() + 1000); // AI response 1 second after user message
+        
+        return [
+          {
+            role: 'user' as const,
+            content: conv.userMessage,
+            timestamp: userTimestamp
+          },
+          {
+            role: 'ai' as const,
+            content: conv.aiResponse,
+            timestamp: aiTimestamp
+          }
+        ];
+      });
       
       setMessages(historyMessages);
     } catch (error) {
