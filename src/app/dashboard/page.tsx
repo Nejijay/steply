@@ -5,10 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
-import { Sidebar } from '@/components/Sidebar';
+import { Plus, TrendingUp, TrendingDown, DollarSign, LogOut } from 'lucide-react';
+import { BottomNav } from '@/components/BottomNav';
 import { Calculator } from '@/components/Calculator';
 import { CurrencyConverter } from '@/components/CurrencyConverter';
+import { WalletCard } from '@/components/WalletCard';
+import { FinancialHealthCard } from '@/components/FinancialHealthCard';
+import { AIAdvisor } from '@/components/AIAdvisor';
+import { AIChat } from '@/components/AIChat';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { TransactionsList } from '@/components/TransactionsList';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -83,16 +87,16 @@ export default function Dashboard() {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <Sidebar 
-        onCalculatorOpen={() => setShowCalculator(true)}
-        onConverterOpen={() => setShowConverter(true)}
-      />
+  const handleLogout = async () => {
+    const { logout } = await import('@/lib/firebase-service');
+    await logout();
+    router.push('/login');
+  };
 
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Main Content */}
-      <div className="flex-1 md:ml-64">
+      <div className="max-w-7xl mx-auto">
         <div className="p-4 sm:p-6 lg:p-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -106,63 +110,44 @@ export default function Dashboard() {
                 <Plus size={20} />
                 <span className="hidden sm:inline">Add Transaction</span>
               </Button>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </Button>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-white/90">Total Balance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {loading ? '...' : formatCurrency(stats.totalBalance)}
-                </div>
-                <p className="text-xs text-white/80 mt-1">
-                  {stats.totalBalance >= 0 ? '✓ Positive balance' : '⚠ Negative balance'}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {loading ? '...' : formatCurrency(stats.totalIncome)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {transactions.filter(t => t.type === 'income').length} transactions
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                  <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-                    <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {loading ? '...' : formatCurrency(stats.totalExpenses)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {transactions.filter(t => t.type === 'expense').length} transactions
-                </p>
-              </CardContent>
-            </Card>
+          {/* Wallet Card */}
+          <div className="mb-8">
+            <WalletCard
+              balance={stats.totalBalance}
+              income={stats.totalIncome}
+              expenses={stats.totalExpenses}
+              loading={loading}
+            />
           </div>
+
+        {/* AI Advisor & Financial Health */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <AIAdvisor
+            balance={stats.totalBalance}
+            income={0}
+            expenses={stats.totalExpenses}
+            transactions={transactions}
+            budgets={budgets}
+          />
+          <FinancialHealthCard
+            balance={stats.totalBalance}
+            income={stats.totalIncome}
+            expenses={stats.totalExpenses}
+            budgets={budgets}
+            transactions={transactions}
+          />
+        </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
@@ -256,6 +241,12 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Bottom Navigation */}
+      <BottomNav 
+        onCalculatorOpen={() => setShowCalculator(true)}
+        onConverterOpen={() => setShowConverter(true)}
+      />
+
       {/* Calculator Modal */}
       {showCalculator && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -269,6 +260,16 @@ export default function Dashboard() {
           <CurrencyConverter onClose={() => setShowConverter(false)} />
         </div>
       )}
+
+      {/* AI Chat Assistant */}
+      <AIChat
+        balance={stats.totalBalance}
+        income={stats.totalIncome}
+        expenses={stats.totalExpenses}
+        transactions={transactions}
+        budgets={budgets}
+        currentPage="Dashboard"
+      />
 
       <FloatingAddButton />
     </div>

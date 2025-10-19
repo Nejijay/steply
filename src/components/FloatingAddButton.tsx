@@ -43,10 +43,10 @@ export const FloatingAddButton = () => {
     <>
       <Button
         onClick={() => setShowForm(true)}
-        className="fixed bottom-4 right-4 h-14 w-14 rounded-full shadow-lg z-50 touch-manipulation active:scale-95 transition-transform"
+        className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-2xl z-40 touch-manipulation active:scale-95 transition-transform bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
         size="icon"
       >
-        <Plus size={24} />
+        <Plus size={28} strokeWidth={2.5} />
       </Button>
 
       {showForm && (

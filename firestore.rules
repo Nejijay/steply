@@ -26,5 +26,22 @@ service cloud.firestore {
       allow read, write: if isOwner(resource.data.uid);
       allow create: if isAuthenticated() && isOwner(request.resource.data.uid);
     }
+
+    // AI Conversations - users can only access their own conversations
+    match /ai_conversations/{conversationId} {
+      allow read, write: if isOwner(resource.data.uid);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.uid);
+    }
+
+    // AI Insights - users can only access their own insights
+    match /ai_insights/{insightId} {
+      allow read, write: if isOwner(resource.data.uid);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.uid);
+    }
+
+    // AI Memory - users can only access their own memory
+    match /ai_memory/{userId} {
+      allow read, write: if isOwner(userId);
+    }
   }
 }

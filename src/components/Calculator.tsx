@@ -93,40 +93,40 @@ export const Calculator = ({ onClose }: CalculatorProps) => {
   ];
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-lg">Calculator</CardTitle>
+    <Card className="w-full max-w-sm bg-white dark:bg-gray-900 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-lg">
+        <CardTitle className="text-lg font-bold">Calculator</CardTitle>
         {onClose && (
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-white/20 text-white">
             <X size={18} />
           </Button>
         )}
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-6 bg-white dark:bg-gray-900">
         {/* Display */}
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-right">
-          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 break-all">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 text-right shadow-inner border border-gray-700">
+          <div className="text-4xl font-bold text-white break-all min-h-[48px] flex items-center justify-end">
             {display}
           </div>
           {operation && previousValue !== null && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <div className="text-sm text-gray-400 mt-2">
               {previousValue} {operation}
             </div>
           )}
         </div>
 
         {/* Buttons */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-3">
           <Button
             variant="outline"
-            className="col-span-2"
+            className="col-span-2 h-12 font-semibold bg-red-50 hover:bg-red-100 dark:bg-red-950 dark:hover:bg-red-900 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700"
             onClick={handleClear}
           >
             Clear
           </Button>
           <Button
             variant="outline"
-            className="col-span-2"
+            className="col-span-2 h-12 font-semibold bg-orange-50 hover:bg-orange-100 dark:bg-orange-950 dark:hover:bg-orange-900 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700"
             onClick={handleBackspace}
           >
             ⌫
@@ -137,7 +137,13 @@ export const Calculator = ({ onClose }: CalculatorProps) => {
               <Button
                 key={btn}
                 variant={['+', '-', '×', '÷', '='].includes(btn) ? 'default' : 'outline'}
-                className="h-14 text-lg font-semibold"
+                className={`h-16 text-xl font-bold transition-all active:scale-95 ${
+                  ['+', '-', '×', '÷'].includes(btn)
+                    ? 'bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md'
+                    : btn === '='
+                    ? 'bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md'
+                    : 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border-2'
+                }`}
                 onClick={() => {
                   if (btn === '=') handleEquals();
                   else if (btn === '.') handleDecimal();
