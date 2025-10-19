@@ -1,9 +1,9 @@
 // Simple service worker for PWA functionality
-const CACHE_NAME = 'stephly-v1';
+const CACHE_NAME = 'stephly-v2';
 const urlsToCache = [
   '/',
   '/dashboard',
-  '/icon.svg',
+  '/logo/stephly.png',
   '/manifest.json'
 ];
 
