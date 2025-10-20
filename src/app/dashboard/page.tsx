@@ -162,7 +162,7 @@ export default function Dashboard() {
                           setShowSettingsMenu(false);
                           router.push('/analytics');
                         }}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-sm"
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-sm text-gray-900 dark:text-white"
                       >
                         <BarChart3 size={18} />
                         <span>Analytics</span>
@@ -173,7 +173,7 @@ export default function Dashboard() {
                           setShowSettingsMenu(false);
                           router.push('/settings');
                         }}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-sm"
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-sm text-gray-900 dark:text-white"
                       >
                         <Settings size={18} />
                         <span>Settings</span>
