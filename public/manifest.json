@@ -2,7 +2,7 @@
   "name": "Stephly - Smart Budget Tracker",
   "short_name": "Stephly",
   "description": "AI-powered budget tracking made easy with Stephly",
-  "start_url": "/dashboard",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#9333ea",
