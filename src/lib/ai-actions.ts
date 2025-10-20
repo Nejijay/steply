@@ -261,7 +261,49 @@ async function createBudgetFromAI(data: any, uid: string): Promise<AIActionRespo
  */
 async function addTransactionFromAI(data: any, uid: string): Promise<AIActionResponse> {
   try {
-    // Validate and create date - default to current date if invalid
+    // Check if data is an array (multiple transactions)
+    if (Array.isArray(data)) {
+      const transactions: any[] = [];
+      let totalAmount = 0;
+      
+      // Create all transactions
+      for (const item of data) {
+        let transactionDate = new Date();
+        if (item.date) {
+          const parsedDate = new Date(item.date);
+          if (!isNaN(parsedDate.getTime())) {
+            transactionDate = parsedDate;
+          }
+        }
+
+        const transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'> = {
+          uid,
+          type: item.type || 'expense',
+          title: item.title || item.description || 'Transaction',
+          amount: parseFloat(item.amount) || 0,
+          category: item.category || 'Other',
+          date: transactionDate,
+          note: item.note || '',
+        };
+
+        await addTransaction(transaction);
+        transactions.push(transaction);
+        totalAmount += transaction.amount;
+      }
+      
+      // Create summary message
+      const emoji = transactions[0].type === 'income' ? '💰' : '💸';
+      const transactionList = transactions.map(t => 
+        `${t.type === 'income' ? '📈' : '📉'} Type: Expense\n💵 Amount: ₵${t.amount}\n📁 Category: ${t.category}\n📝 Title: ${t.title}\n📅 Date: ${t.date.toLocaleDateString()}`
+      ).join('\n\n');
+      
+      return {
+        message: `${emoji} Transaction added successfully!\n\n${transactionList}\n\nYour balance has been updated!`,
+        success: true,
+      };
+    }
+    
+    // Single transaction (original logic)
     let transactionDate = new Date();
     if (data.date) {
       const parsedDate = new Date(data.date);
@@ -354,35 +396,39 @@ async function createTodoFromAI(data: any, uid: string): Promise<AIActionRespons
  */
 export const parseNaturalLanguage = async (
   message: string
-): Promise<{ category?: string; amount?: number; type?: 'income' | 'expense'; title?: string }> => {
+): Promise<any> => {
   try {
-    const prompt = `Extract structured data from this natural language message:
+    const prompt = `Extract ALL transactions from this natural language message:
 
 "${message}"
 
-Extract:
-- amount (number) - If multiple amounts mentioned, use the FIRST one only
-- category (IMPORTANT: Use the EXACT category the user mentions! Can be ANYTHING: Gym, Haircut, Netflix, Gifts, Uber, etc. If no specific category mentioned, use a general one like Food, Transport, Shopping, Bills, Entertainment, Healthcare, Education, Salary, Freelance, Investment, Gift, or Other)
+IMPORTANT: If the user mentions MULTIPLE items with different amounts, create a SEPARATE transaction for EACH item!
+
+For EACH transaction extract:
+- amount (number)
+- category (IMPORTANT: Use the EXACT category the user mentions! Can be ANYTHING: Gym, Haircut, Netflix, Gifts, Uber, Food, Cloths, Beans, etc. If no specific category mentioned, use a general one like Food, Transport, Shopping, Bills, Entertainment, Healthcare, Education, Salary, Freelance, Investment, Gift, or Other)
 - type (income or expense)
 - title/description
 
-IMPORTANT: Return a SINGLE JSON object, NOT an array!
-
-Return JSON:
-{
-  "amount": 100,
-  "category": "Lunch",
-  "type": "expense",
-  "title": "Lunch at restaurant"
-}
+If MULTIPLE items are mentioned, return an ARRAY of transaction objects!
+If SINGLE item is mentioned, return a SINGLE JSON object!
 
 Examples:
-"50 for gym membership" → category: "Gym"
-"paid 200 for haircut" → category: "Haircut"  
-"bought netflix 15" → category: "Netflix"
-"uber ride 30" → category: "Uber"
-"spent 100 on gifts" → category: "Gifts"
-"bought light 20" → category: "Light"`;
+"I bought food 20, cloths 200, beans 40" → 
+[
+  {"amount": 20, "category": "Food", "type": "expense", "title": "bought food"},
+  {"amount": 200, "category": "Cloths", "type": "expense", "title": "bought cloths"},
+  {"amount": 40, "category": "Beans", "type": "expense", "title": "bought beans"}
+]
+
+"50 for gym membership" → 
+{"amount": 50, "category": "Gym", "type": "expense", "title": "gym membership"}
+
+"bought light 20, water 15" →
+[
+  {"amount": 20, "category": "Light", "type": "expense", "title": "bought light"},
+  {"amount": 15, "category": "Water", "type": "expense", "title": "bought water"}
+]`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -396,12 +442,13 @@ Examples:
       try {
         const parsed = JSON.parse(jsonMatch[0]);
         
-        // If it's an array, return the first item (we'll handle multiple transactions later)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          console.log('Multiple transactions detected, using first one:', parsed[0]);
-          return parsed[0];
+        // Return as is - can be single object or array
+        if (Array.isArray(parsed)) {
+          console.log(`Multiple transactions detected: ${parsed.length} items`, parsed);
+          return parsed;
         }
         
+        console.log('Single transaction detected:', parsed);
         return parsed;
       } catch (jsonError) {
         console.error('JSON Parse Error:', jsonError);

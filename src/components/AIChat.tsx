@@ -51,24 +51,36 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
     try {
       const history = await getConversationHistory(user.uid, 10);
       
-      // Convert history to message format and reverse to show oldest first
-      const historyMessages = history.reverse().flatMap(conv => {
-        const userTimestamp = conv.timestamp instanceof Date ? conv.timestamp : new Date(conv.timestamp);
-        const aiTimestamp = new Date(userTimestamp.getTime() + 1000); // AI response 1 second after user message
+      // Process conversations and ensure proper chronological order
+      const historyMessages: Array<{ role: 'user' | 'ai'; content: string; timestamp: Date }> = [];
+      
+      // History comes oldest first from the service
+      history.forEach((conv, index) => {
+        const baseTimestamp = conv.timestamp instanceof Date ? conv.timestamp : new Date(conv.timestamp);
         
-        return [
-          {
-            role: 'user' as const,
-            content: conv.userMessage,
-            timestamp: userTimestamp
-          },
-          {
-            role: 'ai' as const,
-            content: conv.aiResponse,
-            timestamp: aiTimestamp
-          }
-        ];
+        // Create unique timestamps for user and AI messages
+        // User message gets the base timestamp
+        const userTimestamp = new Date(baseTimestamp.getTime());
+        // AI message gets +2 seconds to ensure it's always after user message
+        const aiTimestamp = new Date(baseTimestamp.getTime() + 2000);
+        
+        // Add user message first
+        historyMessages.push({
+          role: 'user',
+          content: conv.userMessage,
+          timestamp: userTimestamp
+        });
+        
+        // Then add AI response
+        historyMessages.push({
+          role: 'ai',
+          content: conv.aiResponse,
+          timestamp: aiTimestamp
+        });
       });
+      
+      // Sort by timestamp to guarantee order
+      historyMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
       
       setMessages(historyMessages);
     } catch (error) {
@@ -233,9 +245,7 @@ export const AIChat = ({ balance, income, expenses, transactions, budgets, curre
               </div>
             )}
 
-            {messages
-              .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-              .map((msg, idx) => (
+            {messages.map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}

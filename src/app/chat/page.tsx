@@ -36,6 +36,7 @@ export default function ChatPage() {
     timestamp: Date;
   }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isProcessingRef = useRef(false); // Prevent duplicate sends
 
   const [stats, setStats] = useState({
@@ -74,6 +75,9 @@ export default function ChatPage() {
         totalExpenses: expenses,
       });
 
+      // Check if this is a new chat session
+      const isNewSession = typeof window !== 'undefined' && localStorage.getItem('chat-session') === 'new';
+      
       // Load conversation history from Firebase
       try {
         const conversationsRef = collection(db, 'ai_conversations');
@@ -91,29 +95,34 @@ export default function ChatPage() {
         snapshot.forEach(doc => {
           const data = doc.data();
           
-          // Add to conversation list
+          // Add to conversation list (always load for History sidebar)
           sessionsList.push({
             id: doc.id,
             preview: data.userMessage.substring(0, 50) + (data.userMessage.length > 50 ? '...' : ''),
             timestamp: data.timestamp?.toDate() || new Date(),
           });
           
-          // Add to messages (only load last 20 for current view)
-          if (history.length < 40) { // 20 conversations = 40 messages
+          // Only add to messages if NOT a new session
+          if (!isNewSession && history.length < 40) { // 20 conversations = 40 messages
+            const baseTimestamp = data.timestamp?.toDate() || new Date();
+            // User message comes first (base timestamp)
             history.push({
               role: 'user',
               content: data.userMessage,
-              timestamp: data.timestamp?.toDate() || new Date(),
+              timestamp: baseTimestamp,
             });
+            // AI response comes after (add 1 second to ensure proper ordering)
+            const aiTimestamp = new Date(baseTimestamp.getTime() + 1000);
             history.push({
               role: 'ai',
               content: data.aiResponse,
-              timestamp: data.timestamp?.toDate() || new Date(),
+              timestamp: aiTimestamp,
             });
           }
         });
         
         // Reverse history to show oldest first (chronological order)
+        // If new session, messages will be empty array
         setMessages(history.reverse());
         setConversationHistory(sessionsList);
       } catch (error) {
@@ -160,6 +169,11 @@ export default function ChatPage() {
     
     const userMessage = input.trim();
     setInput('');
+    
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '48px';
+    }
     
     setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: new Date() }]);
     setLoading(true);
@@ -249,6 +263,11 @@ export default function ChatPage() {
       
       setStreaming(false);
       
+      // Mark session as old after first message (so it loads on refresh)
+      if (typeof window !== 'undefined' && localStorage.getItem('chat-session') === 'new') {
+        localStorage.setItem('chat-session', 'old');
+      }
+      
       // Reload conversation history after message
       try {
         const conversationsRef = collection(db, 'ai_conversations');
@@ -299,6 +318,10 @@ export default function ChatPage() {
   const handleNewChat = () => {
     setMessages([]);
     setInput('');
+    // Mark that this is a new chat session - don't load old history
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('chat-session', 'new');
+    }
   };
 
   const handleLoadConversation = async (conversationId: string) => {
@@ -310,19 +333,25 @@ export default function ChatPage() {
       
       if (docSnap.exists()) {
         const data = docSnap.data();
+        const baseTimestamp = data.timestamp?.toDate() || new Date();
+        const aiTimestamp = new Date(baseTimestamp.getTime() + 1000);
         setMessages([
           {
             role: 'user',
             content: data.userMessage,
-            timestamp: data.timestamp?.toDate() || new Date(),
+            timestamp: baseTimestamp,
           },
           {
             role: 'ai',
             content: data.aiResponse,
-            timestamp: data.timestamp?.toDate() || new Date(),
+            timestamp: aiTimestamp,
           },
         ]);
         setShowHistory(false);
+        // Mark as loading old conversation
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('chat-session', 'old');
+        }
       }
     } catch (error) {
       console.error('Error loading conversation:', error);
@@ -432,7 +461,7 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 pb-16 relative">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
       {/* History Sidebar */}
       {showHistory && (
         <div className="fixed inset-0 z-50 flex">
@@ -499,7 +528,7 @@ export default function ChatPage() {
       )}
 
       {/* Header */}
-      <div className={`bg-gradient-to-r ${themeColors[themeColor].primary} text-white p-4 shadow-lg`}>
+      <div className={`bg-gradient-to-r ${themeColors[themeColor].primary} text-white p-4 shadow-lg flex-shrink-0`}>
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -551,7 +580,7 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 max-w-4xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto p-4 pb-40 max-w-4xl mx-auto w-full">
         {messages.length === 0 && (
           <div className="text-center py-16">
             <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br ${themeColors[themeColor].primary} mb-4`}>
@@ -597,32 +626,39 @@ export default function ChatPage() {
         {messages.map((msg, idx) => (
           <div
             key={idx}
-            className={`flex mb-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex mb-2 message-enter ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+              className={`max-w-[85%] rounded-2xl px-3 py-2 overflow-hidden ${
                 msg.role === 'user'
                   ? `bg-gradient-to-br ${themeColors[themeColor].primary} text-white`
                   : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">
+              <p className="text-sm whitespace-pre-wrap leading-snug break-words overflow-wrap-anywhere">
                 {msg.content}
                 {msg.role === 'ai' && idx === messages.length - 1 && streaming && (
                   <span className="animate-pulse ml-1">▊</span>
                 )}
               </p>
-              <p className="text-xs opacity-70 mt-1">
+              <p className="text-xs opacity-70 mt-0.5">
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
         ))}
 
-        {loading && (
-          <div className="flex justify-start mb-4">
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-gray-900 dark:text-gray-100">
-              <Loader2 className="animate-spin" size={20} />
+        {loading && !streaming && (
+          <div className="flex justify-start mb-2">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Stephly is typing</span>
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                  <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                  <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -630,23 +666,46 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="border-t bg-white dark:bg-gray-900 p-4">
-        <div className="max-w-4xl mx-auto flex gap-2">
-          <Input
+      {/* Input - Fixed at bottom */}
+      <div className="fixed bottom-16 left-0 right-0 border-t bg-white dark:bg-gray-900 p-4 flex-shrink-0 z-10">
+        <div className="max-w-4xl mx-auto flex gap-2 items-end">
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder="Type your message... 💬"
             disabled={loading}
-            className="flex-1 h-12 text-base"
+            rows={1}
+            className="flex-1 min-h-[48px] max-h-[200px] px-4 py-3 text-base rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+            style={{
+              height: 'auto',
+              minHeight: '48px',
+            }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+            }}
           />
           <Button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className={`h-12 px-6 bg-gradient-to-r ${themeColors[themeColor].primary} ${themeColors[themeColor].hover}`}
+            className={`h-12 px-6 bg-gradient-to-r ${themeColors[themeColor].primary} flex-shrink-0 
+              transition-all duration-200 
+              ${!loading && input.trim() ? 'hover:scale-105 hover:shadow-lg active:scale-95' : ''} 
+              ${loading ? 'animate-pulse opacity-70' : themeColors[themeColor].hover}`}
           >
-            <Send size={20} />
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <Send size={20} />
+            )}
           </Button>
         </div>
       </div>
