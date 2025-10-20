@@ -1,5 +1,5 @@
 // Service worker for PWA functionality
-const CACHE_NAME = 'stephly-v4';
+const CACHE_NAME = 'stephly-v5';
 const urlsToCache = [
   '/',
   '/dashboard',
