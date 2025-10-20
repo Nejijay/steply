@@ -179,13 +179,14 @@ export const WelcomeModal = ({ userName }: WelcomeModalProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pb-24">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 pb-24">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl relative z-[10000]">
         {/* Header */}
         <div className={`bg-gradient-to-r ${themeColors[themeColor].primary} p-6 relative`}>
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-all z-[10001] active:scale-95"
+            aria-label="Close welcome modal"
           >
             <X size={24} />
           </button>
