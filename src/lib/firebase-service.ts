@@ -192,6 +192,10 @@ export const getBudgets = async (uid: string, month: number, year: number) => {
   return budgets;
 };
 
+export const deleteBudget = async (budgetId: string) => {
+  await deleteDoc(doc(db, 'budgets', budgetId));
+};
+
 // TODO functions
 export const addTodo = async (todo: Omit<Todo, 'id' | 'createdAt'>) => {
   const docRef = await addDoc(collection(db, 'todos'), {

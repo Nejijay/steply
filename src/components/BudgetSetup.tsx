@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Budget } from '@/lib/types';
-import { setBudget, getBudgets } from '@/lib/firebase-service';
+import { setBudget, getBudgets, deleteBudget } from '@/lib/firebase-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/currency';
 import { useThemeColor, themeColors } from '@/contexts/ThemeColorContext';
@@ -86,8 +86,13 @@ export const BudgetSetup = ({ refreshTrigger }: BudgetSetupProps) => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this budget?')) return;
 
-    // TODO: Implement budget deletion
-    console.log('Delete budget:', id);
+    try {
+      await deleteBudget(id);
+      await loadBudgets(); // Reload the budgets list
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+      alert('Failed to delete budget. Please try again.');
+    }
   };
 
   // formatCurrency imported from @/lib/currency
